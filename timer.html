@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	  <meta name="author" content="Jonathan Waters, class of 2023">
+	<title>Mr. Anderson's Timer</title>
+	<style type="text/css">
+		body {
+			margin: 0;
+			padding: 0;
+			background-color: black;
+		}
+
+		#title{
+			background-color: lightgrey;
+			color: black;
+			padding: 0;
+			margin: 0;
+		}
+		.wrapper {
+			position: fixed;
+			margin: auto;
+			width: 99vw;
+			height: 97vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.inputWrapper {
+			position: fixed;
+			margin: auto;
+			width: 99vw;
+			height: 97vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			z-index: 1;
+			flex-direction: column;
+		}
+		.header {
+			position: fixed;
+			margin: auto;
+			width: 99vw;
+			height: 97vh;
+			display: flex;
+			align-items: top;
+			justify-content: top;
+			z-index: 1;
+			flex-direction: column;
+			text-align: center;
+		}
+		input{
+			width: 8vw;
+			margin-bottom: 7px;
+			border-style: solid;
+			border-color: dimgrey;
+			background: lightgrey;
+		}
+		#heading{
+			color: lightgrey;
+		}
+		.footer{
+			position: fixed;
+			margin: auto;
+			width: 100vw;
+			height: 100vh;
+			display: flex;
+			align-items: center;
+  			justify-content: center;
+  			z-index: 1;
+  			pointer-events: none;
+		}
+		textarea{
+			width: 100vw;
+			height: 15vh;
+			align-self: flex-end;
+			pointer-events: auto; 
+			font-size: 2em;
+			resize: none;
+
+		}
+		textarea:focus{
+			outline: none;
+		}
+	</style>
+</head>
+<body>
+	<div class="header">
+		<h1 id="heading">Mr. Anderson's Timer</h1>
+	</div>
+	<div class="inputWrapper">
+		<h1 id="title" >Time:</h1>
+		<div>
+			<input type="number" id="hr" width="8vw" placeholder="hrs" autocomplete="off" >
+			<input type="number" id="min" width="8vw"placeholder="mins" autocomplete="off">
+			<input type="number" id="sec" width="8vw" placeholder="secs" autocomplete="off">
+		</div>
+		<button id="submit">Start</button>
+	</div>
+	<div class="wrapper">
+		<svg height="32vw" width="32vw" id="circle" viewbox = "-1000 -1000 2000 2000">
+		<circle cx="0" cy="0" r="1000" fill="lightgrey"/>
+<polygon points="" stroke="black" stroke-width="0.01" id="poly" fill="#414141"></polygon>
+		</svg>
+	</div>
+	<div class="footer">
+		<textarea placeholder="Message"></textarea>
+	</div>
+	<script type="text/javascript">
+
+		//Just getting the elements we need to change/keep track of
+		submit = document.getElementById("submit")
+		hr = document.getElementById("hr")
+		min = document.getElementById("min")
+		sec = document.getElementById("sec")
+		title = document.getElementById("title")
+		poly = document.getElementById("poly")
+
+		//listen for when the start button is pressed
+		submit.addEventListener("click", (e)=>{
+
+				//get the value of the numbers that were input
+				//if blank set it to zero
+				hrs = !isNaN(hr.valueAsNumber) ? hr.valueAsNumber : 0
+				mins = !isNaN(min.valueAsNumber) ? min.valueAsNumber : 0
+				secs = !isNaN(sec.valueAsNumber) ? sec.valueAsNumber : 0 
+
+				//calculate the time in seconds
+				time = hrs*3600 + mins*60 + secs
+
+				//hide the buttons and inputs
+				hr.style.visibility = "hidden"
+				min.style.visibility = "hidden"
+				sec.style.visibility = "hidden"
+				submit.style.visibility = "hidden"
+				
+				//start the timer(time in millis)
+				startTimer(time*1000)
+		})
+		function sleep(ms) {
+      		return new Promise(resolve => setTimeout(resolve, ms));
+   		}
+		async function startTimer(timeAmnt){
+
+			//get start time
+			d = new Date()
+			startTime = d.getTime()
+			//when we start time left is just the amount of time on the timer
+			timeLeft = timeAmnt;
+
+			//while there is still time left in the timer
+			while(timeLeft > 0){
+
+				//calculate the amount of time left in the timer(curr time minus start time)
+				timeLeft = timeAmnt - ((new Date).getTime() - startTime)
+				
+				//generate points to approximate a fractional circle with a polygon
+				//resolution of 10 points per degree
+				//the math here isn't that bad, just sines and cosines
+				//all values are floored to two decimal places
+				//circles are diameter 1000
+				//all angles shifted by 3pi/4 because the coordinate system is backwards, and also we want to start from the top
+				//and there is a conversion from degrees to radians in there
+				points = ""
+				for(i = 0; i<(timeLeft)/timeAmnt * 360; i+=.1){
+					points += " " + Math.floor(100000*(Math.cos(i*Math.PI/180 + (3*Math.PI/2))))/100 +","+ Math.floor(100000*(Math.sin(i*Math.PI/180 + (3*Math.PI/2))))/100
+				}
+
+				//same thing but going in the opposite direction
+				//with a smaller radius, to get the inside edge of the polygon
+				//radius 900
+				for(i = (timeLeft)/timeAmnt * 360; i>0; i-=.1){
+					points += " " + Math.floor(90000*(Math.cos(i*Math.PI/180 + (3*Math.PI/2))))/100 +","+ Math.floor(90000*(Math.sin(i*Math.PI/180 + (3*Math.PI/2))))/100
+				}
+				//update the polygon with the new points
+				poly.setAttribute("points", points)
+
+				//math to figure out how much time is left
+				//if you want to add the seconds back in, change minsLeft from Math.ceil to Math.floor
+				//remove the "00" from title.textcontent, and uncomment the end of that line
+				hrsLeft = Math.floor(timeLeft/3600000).toString().padStart(2,"0")
+				minsLeft = Math.ceil((timeLeft-hrsLeft*3600000)/60000).toString().padStart(2,"0")
+				secsLeft = ((timeLeft-hrsLeft*3600000-minsLeft*60000)/1000) 
+				title.textContent = "Time Left: " + hrsLeft + ":" + minsLeft + ":00" /*+ (timeLeft<10000?secsLeft.toFixed(1).toString().padStart(4,"0"):Math.floor(secsLeft).toString().padStart(2,"0"))*/
+
+				//wait for 1 millisecond to allow the polygon to render and prevent the webpage from being overloaded 
+				await sleep(1)
+			}
+
+			//display that we're done and show the buttons and inputs once we finish
+			title.textContent = "Done!"
+			hr.style.visibility = "visible"
+			min.style.visibility = "visible"
+			sec.style.visibility = "visible"
+			submit.style.visibility = "visible"
+
+		}
+	</script>
+</body>
+</html>
